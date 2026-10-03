@@ -146,12 +146,22 @@ def train_and_register(
     return report
 
 
-def reference_profile(train: pd.DataFrame, bins: int = 10) -> dict[str, list[float]]:
-    """Decile edges per feature - the baseline the drift monitor compares against."""
+def reference_profile(train: pd.DataFrame, bins: int = 10) -> dict[str, dict[str, list[float]]]:
+    """Per-feature decile edges + observed bin shares - the drift monitor's baseline.
+
+    Shares are measured rather than assumed uniform because low-cardinality features
+    (e.g. hour_of_day) collapse duplicate quantile edges into uneven bins.
+    """
     profile = {}
     for col in FEATURE_COLUMNS:
-        edges = np.unique(np.quantile(train[col].to_numpy(dtype=float), np.linspace(0, 1, bins + 1)))
-        profile[col] = [float(e) for e in edges]
+        values = train[col].to_numpy(dtype=float)
+        edges = np.unique(np.quantile(values, np.linspace(0, 1, bins + 1)))
+        inner = edges[1:-1]
+        counts = np.bincount(np.searchsorted(inner, values, side="right"), minlength=len(inner) + 1)
+        profile[col] = {
+            "edges": [float(e) for e in edges],
+            "expected": [float(c) for c in counts / counts.sum()],
+        }
     return profile
 
 
