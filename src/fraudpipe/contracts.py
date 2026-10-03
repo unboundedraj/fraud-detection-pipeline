@@ -201,14 +201,23 @@ class Contract:
         warehouse: Path | None = None,
         run_id: str = "adhoc",
         raise_on_error: bool = True,
+        references: dict[str, str] | None = None,
     ) -> list[CheckResult]:
-        """Validate a Parquet glob / table expression against this contract."""
+        """Validate a Parquet glob / table expression against this contract.
+
+        `references` maps view names to Parquet globs so checks can compare against
+        other datasets (e.g. "gold has the same grain as silver").
+        """
         rel = (
             f"read_parquet('{source}', hive_partitioning = true)"
             if source.endswith(".parquet")
             else source
         )
         with duckdb.connect() as con:
+            for view, glob in (references or {}).items():
+                con.execute(
+                    f"CREATE VIEW {view} AS SELECT * FROM read_parquet('{glob}', hive_partitioning = true)"
+                )
             results = self._schema_checks(con, rel) + self._dataset_checks(con, rel)
 
         failed_errors = [r for r in results if not r.passed and r.severity == "error"]
