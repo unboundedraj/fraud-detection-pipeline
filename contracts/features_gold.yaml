@@ -1,0 +1,32 @@
+name: features_gold
+description: >
+  Model-ready feature table. Same grain as silver (one row per transaction) with
+  engineered time-window features. Consumed by training and by the batch scorer.
+owner: data-platform
+layer: gold
+
+columns:
+  - {name: transaction_id, type: VARCHAR, nullable: false}
+  - {name: event_ts, type: TIMESTAMP, nullable: false}
+  - {pattern: "v\\d+", type: DOUBLE, nullable: false, count: 28}
+  - {name: amount, type: DOUBLE, nullable: false, min: 0}
+  - {name: amount_log, type: DOUBLE, nullable: false, min: 0}
+  - {name: hour_of_day, type: BIGINT, nullable: false, min: 0, max: 23}
+  - {name: txn_count_prev_window, type: BIGINT, nullable: false, min: 0}
+  - {name: amount_avg_prev_window, type: DOUBLE, nullable: false, min: 0}
+  - {name: amount_zscore_prev_window, type: DOUBLE, nullable: false}
+  - {name: is_fraud, type: TINYINT, nullable: false}
+
+checks:
+  - {type: unique, name: one_row_per_transaction, columns: [transaction_id]}
+  - type: sql
+    name: same_grain_as_silver
+    expression: count(*) = (SELECT count(*) FROM silver_ref)
+  - type: sql
+    name: zscore_finite
+    expression: bool_and(NOT isnan(amount_zscore_prev_window) AND NOT isinf(amount_zscore_prev_window))
+  - type: metric_between
+    name: velocity_feature_not_degenerate
+    severity: warn
+    metric: stddev_samp(txn_count_prev_window)
+    min: 1

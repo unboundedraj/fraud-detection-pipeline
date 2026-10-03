@@ -1,0 +1,38 @@
+name: transactions_silver
+description: >
+  Cleaned, conformed and deduplicated transactions. One row per distinct transaction.
+  This is the system of record for everything downstream (features, training, replay).
+owner: data-platform
+layer: silver
+strict_schema: true
+
+columns:
+  - {name: transaction_id, type: VARCHAR, nullable: false}
+  - {name: source_row_id, type: BIGINT, nullable: false}
+  - {name: event_ts, type: TIMESTAMP, nullable: false}
+  - {name: event_date, type: DATE, nullable: false}
+  - {name: time_offset_s, type: DOUBLE, nullable: false, min: 0}
+  - {pattern: "v\\d+", type: DOUBLE, nullable: false, count: 28}
+  - {name: amount, type: DOUBLE, nullable: false, min: 0, max: 50000}
+  - {name: is_fraud, type: TINYINT, nullable: false}
+  - {name: source_batch_id, type: VARCHAR, nullable: false}
+  - {name: source_ingested_at, type: TIMESTAMP, nullable: false}
+
+checks:
+  - {type: unique, name: transaction_id_unique, columns: [transaction_id]}
+  - {type: row_count, name: volume_after_dedup, min: 250000, max: 320000}
+  - {type: accepted_values, name: label_is_binary, column: is_fraud, values: [0, 1]}
+  - type: metric_between
+    name: fraud_rate_plausible
+    metric: avg(is_fraud)
+    min: 0.0005
+    max: 0.01
+  - type: metric_between
+    name: positive_class_has_enough_support_to_train
+    metric: sum(is_fraud)
+    min: 300
+  - type: metric_between
+    name: event_window_covers_two_days
+    metric: date_diff('hour', min(event_ts), max(event_ts))
+    min: 40
+    max: 49
