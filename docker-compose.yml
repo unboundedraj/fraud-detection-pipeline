@@ -1,0 +1,52 @@
+# Local streaming stack:
+#   redpanda  - Kafka-API compatible broker (single node, no ZooKeeper)
+#   console   - web UI for topics / consumer groups  -> http://localhost:8080
+#   topics    - one-shot job creating topics with explicit partitions/retention.
+#               transactions.raw has ONE partition on purpose: the window features are
+#               global (the dataset has no card/merchant id to key by), so they need a
+#               total event-time order. With an entity key you would partition by it.
+#
+#   docker compose up -d
+#   fraudpipe produce --backend kafka --speedup 120
+#   fraudpipe consume --backend kafka
+
+services:
+  redpanda:
+    image: docker.redpanda.com/redpandadata/redpanda:v24.2.7
+    command:
+      - redpanda start
+      - --smp 1
+      - --memory 1G
+      - --overprovisioned
+      - --kafka-addr internal://0.0.0.0:9092,external://0.0.0.0:19092
+      - --advertise-kafka-addr internal://redpanda:9092,external://localhost:19092
+      - --mode dev-container
+    ports:
+      - "19092:19092"
+    healthcheck:
+      test: ["CMD-SHELL", "rpk cluster health | grep -E 'Healthy:.+true' || exit 1"]
+      interval: 5s
+      timeout: 5s
+      retries: 20
+
+  topics:
+    image: docker.redpanda.com/redpandadata/redpanda:v24.2.7
+    depends_on:
+      redpanda:
+        condition: service_healthy
+    entrypoint: ["/bin/bash", "-c"]
+    command:
+      - >
+        rpk -X brokers=redpanda:9092 topic create transactions.raw -p 1 -c retention.ms=604800000 || true;
+        rpk -X brokers=redpanda:9092 topic create fraud.alerts -p 1 -c cleanup.policy=compact || true;
+        rpk -X brokers=redpanda:9092 topic list
+
+  console:
+    image: docker.redpanda.com/redpandadata/console:v2.7.2
+    depends_on:
+      redpanda:
+        condition: service_healthy
+    environment:
+      KAFKA_BROKERS: redpanda:9092
+    ports:
+      - "8080:8080"
