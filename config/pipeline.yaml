@@ -3,7 +3,7 @@
 source:
   # Public mirror of the Kaggle "Credit Card Fraud Detection" dataset (ULB, Sept 2013).
   url: https://storage.googleapis.com/download.tensorflow.org/data/creditcard.csv
-  sha256: null            # pinned after first successful download (see data/landing/_manifest.json)
+  sha256: 76274b691b16a6c49d3f159c883398e03ccd6d1ee12d9d8ee38f4b4b98551a89
   # The raw `Time` column is "seconds since the first transaction". We anchor it to a
   # calendar timestamp so we can partition, window and replay events realistically.
   time_anchor: "2013-09-01T00:00:00"
