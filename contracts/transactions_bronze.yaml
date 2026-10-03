@@ -1,0 +1,39 @@
+name: transactions_bronze
+description: >
+  Raw card transactions as delivered by the source, typed and partitioned but not
+  cleaned. Duplicates are expected here and are only *monitored* (warn), not blocked.
+owner: data-platform
+layer: bronze
+
+columns:
+  - {name: source_row_id, type: BIGINT, nullable: false}
+  - {name: Time, type: DOUBLE, nullable: false, min: 0, max: 172800}
+  - {pattern: "V\\d+", type: DOUBLE, nullable: false, count: 28}
+  - {name: Amount, type: DOUBLE, nullable: false, min: 0}
+  - {name: Class, type: INTEGER, nullable: false}
+  - {name: event_ts, type: TIMESTAMP, nullable: false}
+  - {name: event_date, type: DATE, nullable: false}
+  - {name: event_hour, nullable: false, min: 0, max: 23}
+  - {name: _source_file, type: VARCHAR, nullable: false}
+  - {name: _batch_id, type: VARCHAR, nullable: false}
+  - {name: _ingested_at, type: TIMESTAMP, nullable: false}
+
+checks:
+  - {type: row_count, name: volume_within_expected_band, min: 250000, max: 320000}
+  - {type: unique, name: source_row_id_unique, columns: [source_row_id]}
+  - {type: accepted_values, name: label_is_binary, column: Class, values: [0, 1]}
+  - type: metric_between
+    name: fraud_rate_plausible
+    metric: avg(Class)
+    min: 0.0005
+    max: 0.01
+  - type: duplicate_fraction
+    name: exact_duplicate_records
+    severity: warn
+    max: 0.0
+    columns: [Time, V1, V2, V3, V4, V5, V6, V7, V8, V9, V10, V11, V12, V13, V14,
+              V15, V16, V17, V18, V19, V20, V21, V22, V23, V24, V25, V26, V27, V28,
+              Amount, Class]
+  - type: sql
+    name: event_ts_consistent_with_partition
+    expression: bool_and(CAST(event_ts AS DATE) = event_date AND hour(event_ts) = event_hour)
