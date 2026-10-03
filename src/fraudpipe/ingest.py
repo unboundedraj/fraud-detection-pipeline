@@ -25,6 +25,14 @@ from fraudpipe.observability import log
 RAW_FILENAME = "creditcard.csv"
 MANIFEST = "_manifest.json"
 
+# Explicit source schema - never trust type inference on a raw feed.
+SOURCE_SCHEMA: dict[str, str] = {
+    "Time": "DOUBLE",
+    **{f"V{i}": "DOUBLE" for i in range(1, 29)},
+    "Amount": "DOUBLE",
+    "Class": "INTEGER",
+}
+
 
 def sha256_of(path: Path, chunk: int = 1 << 20) -> str:
     digest = hashlib.sha256()
@@ -103,6 +111,7 @@ def load_bronze(raw_csv: Path, bronze_dir: Path, time_anchor: str, batch_id: str
         shutil.rmtree(bronze_dir)
     bronze_dir.parent.mkdir(parents=True, exist_ok=True)
 
+    columns = "{" + ", ".join(f"'{k}': '{v}'" for k, v in SOURCE_SCHEMA.items()) + "}"
     with duckdb.connect() as con:
         con.execute(
             f"""
@@ -117,7 +126,7 @@ def load_bronze(raw_csv: Path, bronze_dir: Path, time_anchor: str, batch_id: str
                     '{raw_csv.name}'                             AS _source_file,
                     '{batch_id}'                                 AS _batch_id,
                     now()::TIMESTAMP                             AS _ingested_at
-                FROM read_csv_auto(?, header = true)
+                FROM read_csv(?, header = true, columns = {columns})
             ) TO '{bronze_dir.as_posix()}'
             (FORMAT PARQUET, PARTITION_BY (event_date, event_hour), COMPRESSION ZSTD)
             """,
