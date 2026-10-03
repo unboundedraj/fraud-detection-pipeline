@@ -35,6 +35,7 @@ fraudpipe = ["sql/*.sql"]
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]
+pythonpath = ["."]
 addopts = "-q"
 
 [tool.ruff]
@@ -43,3 +44,4 @@ target-version = "py310"
 
 [tool.ruff.lint]
 select = ["E", "F", "I", "B", "UP", "SIM"]
+ignore = ["E501"]  # line length is owned by `ruff format`

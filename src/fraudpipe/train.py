@@ -92,8 +92,12 @@ def train_and_register(
             "validation": ranking_metrics(val[LABEL_COLUMN].to_numpy(), val_score),
             "test": ranking_metrics(test[LABEL_COLUMN].to_numpy(), test_score),
             "test_at_threshold": cost_at_threshold(
-                test[LABEL_COLUMN].to_numpy(), test_score, test["amount"].to_numpy(),
-                threshold, fp_cost, fn_floor,
+                test[LABEL_COLUMN].to_numpy(),
+                test_score,
+                test["amount"].to_numpy(),
+                threshold,
+                fp_cost,
+                fn_floor,
             ),
         }
         leaderboard.append(row)

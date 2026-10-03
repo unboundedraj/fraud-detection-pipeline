@@ -28,7 +28,9 @@ class Settings:
         return self.raw[key]
 
 
-def load_settings(config_path: str | os.PathLike | None = None, root: Path | None = None) -> Settings:
+def load_settings(
+    config_path: str | os.PathLike | None = None, root: Path | None = None
+) -> Settings:
     """Load settings; `FRAUDPIPE_CONFIG` env var overrides the default location."""
     path = Path(config_path or os.environ.get("FRAUDPIPE_CONFIG", DEFAULT_CONFIG))
     with open(path, encoding="utf-8") as fh:

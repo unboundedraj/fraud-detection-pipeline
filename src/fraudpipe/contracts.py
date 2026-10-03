@@ -113,15 +113,22 @@ class Contract:
             if "type" in col:
                 results.append(
                     CheckResult(
-                        f"type:{name}", sev, actual[name] == col["type"].upper(),
-                        actual[name], col["type"].upper(),
+                        f"type:{name}",
+                        sev,
+                        actual[name] == col["type"].upper(),
+                        actual[name],
+                        col["type"].upper(),
                     )
                 )
             if col.get("nullable") is False:
-                nulls = con.execute(f"SELECT count(*) FROM {rel} WHERE {_q(name)} IS NULL").fetchone()[0]
+                nulls = con.execute(
+                    f"SELECT count(*) FROM {rel} WHERE {_q(name)} IS NULL"
+                ).fetchone()[0]
                 results.append(CheckResult(f"not_null:{name}", sev, nulls == 0, nulls, 0))
             if "min" in col or "max" in col:
-                lo, hi = con.execute(f"SELECT min({_q(name)}), max({_q(name)}) FROM {rel}").fetchone()
+                lo, hi = con.execute(
+                    f"SELECT min({_q(name)}), max({_q(name)}) FROM {rel}"
+                ).fetchone()
                 ok = True
                 if "min" in col and lo is not None:
                     ok &= lo >= col["min"]
@@ -230,7 +237,9 @@ class Contract:
             len(failed_warns),
         )
         for r in failed_errors + failed_warns:
-            log.warning("  [%s] %s observed=%s expected=%s", r.severity, r.check, r.observed, r.expected)
+            log.warning(
+                "  [%s] %s observed=%s expected=%s", r.severity, r.check, r.observed, r.expected
+            )
 
         if warehouse is not None:
             _persist(warehouse, run_id, self.name, results)

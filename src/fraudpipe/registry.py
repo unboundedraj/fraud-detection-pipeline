@@ -51,9 +51,13 @@ class ModelRegistry:
             "registered_at": datetime.now(timezone.utc).isoformat(),
             "stage": "candidate",
         }
-        (vdir / "metadata.json").write_text(json.dumps(meta, indent=2, default=str), encoding="utf-8")
-        index["versions"].append({k: meta[k] for k in ("version", "algorithm", "registered_at", "stage")}
-                                 | {"primary_metric": meta["primary_metric"]})
+        (vdir / "metadata.json").write_text(
+            json.dumps(meta, indent=2, default=str), encoding="utf-8"
+        )
+        index["versions"].append(
+            {k: meta[k] for k in ("version", "algorithm", "registered_at", "stage")}
+            | {"primary_metric": meta["primary_metric"]}
+        )
         self._save(index)
         log.info("registered model %s (%s)", version, metadata.get("algorithm"))
         return version
@@ -70,7 +74,11 @@ class ModelRegistry:
             promote = cand_score > champ_score + min_improvement
             log.info(
                 "promotion gate %s: challenger %s=%.4f vs champion %s=%.4f -> %s",
-                metric, version, cand_score, champion, champ_score,
+                metric,
+                version,
+                cand_score,
+                champion,
+                champ_score,
                 "PROMOTE" if promote else "keep champion",
             )
         if promote:

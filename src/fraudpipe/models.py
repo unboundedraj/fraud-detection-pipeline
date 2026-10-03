@@ -28,15 +28,19 @@ class ScoringModel:
     estimator: Any
     feature_columns: list[str]
 
-    def fit(self, X: pd.DataFrame, y: pd.Series, seed: int, max_unsupervised_rows: int) -> ScoringModel:
+    def fit(
+        self, X: pd.DataFrame, y: pd.Series, seed: int, max_unsupervised_rows: int
+    ) -> ScoringModel:
         X = X[self.feature_columns]
         if self.kind == "supervised":
             self.estimator.fit(X, y)
         else:
             # Unsupervised detectors learn "normal" behaviour. Distance-based ones are
             # O(n^2), so we fit them on a reproducible sample.
-            sample = X if len(X) <= max_unsupervised_rows else X.sample(
-                max_unsupervised_rows, random_state=seed
+            sample = (
+                X
+                if len(X) <= max_unsupervised_rows
+                else X.sample(max_unsupervised_rows, random_state=seed)
             )
             self.estimator.fit(sample)
         return self
@@ -49,13 +53,17 @@ class ScoringModel:
         return -self.estimator.decision_function(X)
 
 
-def candidate_models(feature_columns: list[str], fraud_rate: float, seed: int) -> list[ScoringModel]:
+def candidate_models(
+    feature_columns: list[str], fraud_rate: float, seed: int
+) -> list[ScoringModel]:
     contamination = float(min(max(fraud_rate, 1e-4), 0.5))
     return [
         ScoringModel(
             "isolation_forest",
             "unsupervised",
-            IsolationForest(n_estimators=200, contamination=contamination, random_state=seed, n_jobs=-1),
+            IsolationForest(
+                n_estimators=200, contamination=contamination, random_state=seed, n_jobs=-1
+            ),
             feature_columns,
         ),
         ScoringModel(

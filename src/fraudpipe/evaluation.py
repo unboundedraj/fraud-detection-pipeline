@@ -15,6 +15,7 @@ from sklearn.metrics import average_precision_score, precision_recall_curve, roc
 
 def ranking_metrics(y: np.ndarray, score: np.ndarray) -> dict[str, float]:
     precision, recall, _ = precision_recall_curve(y, score)
+
     def recall_at(p: float) -> float:
         mask = precision >= p
         return float(recall[mask].max()) if mask.any() else 0.0
@@ -28,8 +29,12 @@ def ranking_metrics(y: np.ndarray, score: np.ndarray) -> dict[str, float]:
 
 
 def cost_at_threshold(
-    y: np.ndarray, score: np.ndarray, amount: np.ndarray, threshold: float,
-    fp_cost: float, fn_floor: float,
+    y: np.ndarray,
+    score: np.ndarray,
+    amount: np.ndarray,
+    threshold: float,
+    fp_cost: float,
+    fn_floor: float,
 ) -> dict[str, float]:
     pred = score >= threshold
     tp = int(((pred == 1) & (y == 1)).sum())
@@ -59,7 +64,11 @@ def cost_at_threshold(
 
 
 def choose_threshold(
-    y: np.ndarray, score: np.ndarray, amount: np.ndarray, fp_cost: float, fn_floor: float,
+    y: np.ndarray,
+    score: np.ndarray,
+    amount: np.ndarray,
+    fp_cost: float,
+    fn_floor: float,
     n_candidates: int = 400,
 ) -> float:
     """Grid-search the threshold minimising expected cost (on validation data only)."""

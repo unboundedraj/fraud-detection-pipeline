@@ -107,7 +107,9 @@ class StreamScorer:
             ).fetchall()
         for ts, amt in hist:
             self.state.update(ts, amt)
-        log.info("restored feature state from sink: %s events up to %s", len(hist), self.state.watermark)
+        log.info(
+            "restored feature state from sink: %s events up to %s", len(hist), self.state.watermark
+        )
 
     # ---------------------------------------------------------------- loop
     def process_batch(self, records: list[Record]) -> None:
@@ -120,7 +122,9 @@ class StreamScorer:
             if reason is None and wm is not None and ts < wm - self.allowed_lateness_s:
                 reason = "late_event"
             if reason:
-                dead.append({"offset": rec.offset, "reason": reason, "payload": json.dumps(rec.value)})
+                dead.append(
+                    {"offset": rec.offset, "reason": reason, "payload": json.dumps(rec.value)}
+                )
                 continue
             feats = self.state.compute(ts, rec.value["amount"])
             self.state.update(ts, rec.value["amount"])
@@ -135,15 +139,29 @@ class StreamScorer:
             frame["model_version"] = self.meta["version"]
             frame["scored_at"] = pd.Timestamp.now(tz="UTC").tz_localize(None)
             out = frame[
-                ["transaction_id", "event_epoch", "amount", *FEATURE_COLUMNS[len(PCA_COLUMNS):],
-                 "fraud_score", "is_alert", "model_version", "scored_at"]
+                [
+                    "transaction_id",
+                    "event_epoch",
+                    "amount",
+                    *FEATURE_COLUMNS[len(PCA_COLUMNS) :],
+                    "fraud_score",
+                    "is_alert",
+                    "model_version",
+                    "scored_at",
+                ]
             ]
             out.to_parquet(self.scored_dir / batch_name, index=False)  # idempotent by name
             alerts = out[out["is_alert"]]
             if self.alerts_producer is not None and not alerts.empty:
                 self.alerts_producer.send(
-                    (r["transaction_id"], {k: (v.item() if hasattr(v, "item") else v)
-                                           for k, v in r.items() if k != "scored_at"})
+                    (
+                        r["transaction_id"],
+                        {
+                            k: (v.item() if hasattr(v, "item") else v)
+                            for k, v in r.items()
+                            if k != "scored_at"
+                        },
+                    )
                     for r in alerts.to_dict("records")
                 )
             self.stats.alerts += len(alerts)
@@ -156,7 +174,9 @@ class StreamScorer:
         self.stats.events += len(records)
         self.stats.latencies_ms.append((time.perf_counter() - t0) * 1000)
 
-    def run(self, micro_batch_size: int, max_idle_polls: int = 3, max_batches: int | None = None) -> dict:
+    def run(
+        self, micro_batch_size: int, max_idle_polls: int = 3, max_batches: int | None = None
+    ) -> dict:
         idle = 0
         while max_batches is None or self.stats.batches < max_batches:
             records = self.consumer.poll(micro_batch_size, timeout_s=1.0)

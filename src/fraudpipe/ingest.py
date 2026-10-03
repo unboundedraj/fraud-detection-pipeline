@@ -42,8 +42,13 @@ def sha256_of(path: Path, chunk: int = 1 << 20) -> str:
     return digest.hexdigest()
 
 
-def download(url: str, landing: Path, expected_sha256: str | None = None,
-             retries: int = 4, force: bool = False) -> Path:
+def download(
+    url: str,
+    landing: Path,
+    expected_sha256: str | None = None,
+    retries: int = 4,
+    force: bool = False,
+) -> Path:
     """Download the source file into the landing zone (idempotent, resumable by retry).
 
     Skips the download when a file with a matching checksum already exists.
@@ -56,7 +61,9 @@ def download(url: str, landing: Path, expected_sha256: str | None = None,
         known = json.loads(manifest_path.read_text()) if manifest_path.exists() else {}
         checksum = known.get("sha256") or sha256_of(target)
         if expected_sha256 is None or checksum == expected_sha256:
-            log.info("landing file already present (sha256=%s...), skipping download", checksum[:12])
+            log.info(
+                "landing file already present (sha256=%s...), skipping download", checksum[:12]
+            )
             _write_manifest(manifest_path, url, target, checksum)
             return target
 
