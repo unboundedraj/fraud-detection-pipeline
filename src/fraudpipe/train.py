@@ -173,7 +173,9 @@ def write_reports(reports_dir: Path, report: dict[str, Any]) -> None:
     runs = reports_dir / "runs"
     runs.mkdir(parents=True, exist_ok=True)
     (runs / f"train_{report['run_id']}.json").write_text(json.dumps(report, indent=2, default=str))
-    (reports_dir / "model_leaderboard.md").write_text(render_leaderboard(report), encoding="utf-8")
+    (reports_dir / "model_leaderboard.md").write_text(
+        render_leaderboard(report), encoding="utf-8", newline="\n"
+    )
 
 
 def render_leaderboard(report: dict[str, Any]) -> str:
