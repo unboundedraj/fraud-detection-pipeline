@@ -41,7 +41,13 @@ def replay(
     wall_start = time.perf_counter()
     first_event: float | None = None
     with duckdb.connect() as con:
-        reader = con.execute(query).fetch_record_batch(chunk)
+        result = con.execute(query)
+        # duckdb >= 1.4 renamed fetch_record_batch -> to_arrow_reader
+        reader = (
+            result.to_arrow_reader(chunk)
+            if hasattr(result, "to_arrow_reader")
+            else result.fetch_record_batch(chunk)
+        )
         for batch in reader:
             rows = batch.to_pylist()
             if speedup > 0:
