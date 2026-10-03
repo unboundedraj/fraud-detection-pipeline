@@ -50,3 +50,6 @@ stream:
 monitoring:
   psi_warn: 0.10
   psi_alert: 0.25
+  # Features that are seasonal by construction: a 6-hour scoring window will always
+  # "drift" from a 36-hour training window on these, so they are measured but never alert.
+  seasonal_features: [hour_of_day, txn_count_prev_window, amount_avg_prev_window]
